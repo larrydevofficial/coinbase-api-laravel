@@ -17,13 +17,11 @@ it('can generate a jwt token', function () {
  */
 function getJwtToken(string $method, string $uri): string
 {
-    $request_path = $uri;
-    $request_method = $method;
     $keyName = config('app.coinbase_key_name');
-    $coinbaseApiUrl = config('app.coinbase_api_url');
-    $keySecret = str_replace('\\n', "\n", config('app.coinbase_key_secret'));
+    $coinBaseApiUrl = str(config('app.coinbase_api_url'))->afterLast('/');
+    $keySecret = str(config('app.coinbase_key_secret'))->replace('\\n', "\n");
 
-    $uri = $request_method . ' ' . $coinbaseApiUrl . $request_path;
+    $uri = $method . ' ' . $coinBaseApiUrl . $uri;
     $privateKeyResource = openssl_pkey_get_private($keySecret);
 
     if (!$privateKeyResource) {
@@ -48,7 +46,5 @@ function getJwtToken(string $method, string $uri): string
         'nonce' => $nonce  // Nonce included in headers for added security
     ];
 
-    $jwtToken = JWT::encode($jwtPayload, $privateKeyResource, 'ES256', $keyName, $headers);
-
-    return $jwtToken;
+    return JWT::encode($jwtPayload, $privateKeyResource, 'ES256', $keyName, $headers);
 }

@@ -15,14 +15,12 @@ class JsonWebTokenService
      */
     public static function generate(string $method, string $uri): string
     {
-        $request_path = $uri;
-        $request_method = $method;
         $keyName = config('app.coinbase_key_name');
         $coinBaseApiUrl = str(config('app.coinbase_api_url'))->afterLast('/');
-        $keySecret = str_replace('\\n', "\n", config('app.coinbase_key_secret'));
+        $keySecret = str(config('app.coinbase_key_secret'))->replace('\\n', "\n");
 
         $privateKeyResource = openssl_pkey_get_private($keySecret);
-        $uri = $request_method . ' ' . $coinBaseApiUrl . $request_path;
+        $uri = $method . ' ' . $coinBaseApiUrl . $uri;
 
         if (!$privateKeyResource) {
             throw new \Exception('Private key is not valid');
@@ -46,8 +44,6 @@ class JsonWebTokenService
             'nonce' => $nonce  // Nonce included in headers for added security
         ];
 
-        $jwtToken = JWT::encode($jwtPayload, $privateKeyResource, 'ES256', $keyName, $headers);
-
-        return $jwtToken;
+        return JWT::encode($jwtPayload, $privateKeyResource, 'ES256', $keyName, $headers);
     }
 }
