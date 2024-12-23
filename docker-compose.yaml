@@ -1,0 +1,48 @@
+services:
+  app:
+    build:
+      args:
+        user: non_root_user
+        uid: 1000
+      context: .
+      dockerfile: Dockerfile.php
+    container_name: app
+    restart: unless-stopped
+    working_dir: /var/www
+    volumes:
+      - .:/var/www
+    networks:
+      - docker-network
+
+  node:
+    container_name: coinbase_api_node
+    build:
+      context: .
+      dockerfile: Dockerfile.node
+    ports:
+      - "5173:5173"
+    volumes:
+      - .:/var/www
+      - /var/www/node_modules
+    working_dir: /var/www
+    command: "npm run dev -- --host"
+    networks:
+      - docker-network
+
+  nginx:
+    image: nginx:1.27.3-alpine
+    container_name: nginx
+    restart: unless-stopped
+    depends_on:
+      - app
+    ports:
+      - "80:80"
+    volumes:
+      - .:/var/www
+      - ./docker-compose/nginx/:/etc/nginx/conf.d
+    networks:
+      - docker-network
+
+networks:
+  docker-network:
+    driver: bridge
