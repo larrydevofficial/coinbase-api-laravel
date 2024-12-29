@@ -21,7 +21,7 @@ class CoinbaseService
     }
 
     /**
-     * Resuable query string constructor function for api function.
+     * Resuable query string helper method for api.
      * 
      * @param array $query
      * @return self
@@ -33,7 +33,7 @@ class CoinbaseService
     }
 
     /**
-     * Resuable function to make API calls to Coinbase.
+     * Resuable fun to make API calls to Coinbase.
      * 
      * @param string $method
      * @param string $uri 
@@ -57,7 +57,7 @@ class CoinbaseService
     }
 
     /**
-     * Resuable function to handle response from api calls to Coinbase API.
+     * Resuable method to handle response from api calls to Coinbase API.
      * 
      * @param Response $response
      * @return Response | self
@@ -68,7 +68,7 @@ class CoinbaseService
             throw new \RuntimeException("Coinbase API request failed with status code: " . $response->status());
         }
 
-        return $response; // Return $this for chaining when successful.
+        return $response; 
     }
 
     /**
