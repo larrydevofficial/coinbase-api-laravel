@@ -33,7 +33,7 @@ class CoinbaseService
     }
 
     /**
-     * Resuable fun to make API calls to Coinbase.
+     * Resuable method to make API calls to Coinbase.
      * 
      * @param string $method
      * @param string $uri 
