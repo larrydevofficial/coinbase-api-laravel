@@ -22,7 +22,7 @@ return new class extends Migration
     public function down(): void
     {
         Schema::table('crypto_currencies', function (Blueprint $table) {
-            //
+            $table->dropColumn('new_at');
         });
     }
 };
