@@ -13,11 +13,10 @@ class CryptosAllComponent extends Component
     use WithPagination;
     
     public $buttonText = 'Update List';  
-    public $isRefreshing = false; // Add this property
+    public $isRefreshing = false; 
 
     public function mount()
     {
-        // dd(CryptoCurrency::truncate());
         if (!CryptoCurrency::exists()) {
             $this->buttonText = 'Fetching Cryptos...';
             FetchCryptos::dispatch();
@@ -48,7 +47,7 @@ class CryptosAllComponent extends Component
     public function refreshCryptos(): void
     {
         if ($this->isRefreshing) {
-            return; // Prevent multiple clicks while refreshing
+            return;
         }
     
         $this->isRefreshing = true;

@@ -14,6 +14,7 @@ class CoinbaseService
     public object $data;
     private array $query;
     private string $baseUrl;
+    private Response $response;
 
     public function __construct()
     {
@@ -21,93 +22,84 @@ class CoinbaseService
     }
 
     /**
-     * Resuable query string helper method for api.
-     * 
-     * @param array $query
-     * @return self
-    */
-    public function withQuery(array $query): self
-    {
-        $this->query = $query;
-        return $this;
-    }
-
-    /**
      * Resuable method to make API calls to Coinbase.
-     * 
-     * @param string $method
-     * @param string $uri 
-     * @param array $data
-     * @return Response | self
+     *
+     * @param array{method: string, uri: string} $options
+     * @return void
     */
-    private function api(string $method, string $uri, array $data = []): Response|self
+    private function api(array ...$options): void
     {
-        $url = "$this->baseUrl$uri";
-        $jwt = JsonWebTokenService::generate($method, $uri);
+        $uri = $options[0]['uri'];
+        $method = $options[0]['method'];
 
+        $url = "$this->baseUrl$uri?";
+        $jwt = JsonWebTokenService::generate($method, $uri);
         $http = Http::withToken($jwt);
 
-        $response = match ($method) {
-            'POST' => $http->post($url, $data),
+        $this->response = match ($method) {
+            'POST' => $http->post($url, $options['data']),
             'GET' => $http->get($url, $this->query),
             default => throw new \InvalidArgumentException("Unsupported HTTP method: $method"),
         };
-
-        return $this->handleResponse($response);
     }
 
     /**
      * Resuable method to handle response from api calls to Coinbase API.
      * 
-     * @param Response $response
-     * @return Response | self
+     * @throws \Exception
+     * @return void
     */
-    private function handleResponse(Response $response): Response|self
+    private function handleResponse(): void
     {
-        if ($response->failed()) {
-            throw new \RuntimeException("Coinbase API request failed with status code: " . $response->status());
+        if($this->response->failed()) {
+            throw new \Exception("Coinbase API request failed with status code: {$this->response->status()}");
         }
-
-        return $response; 
     }
 
     /**
-     * Fetches cryptos from coinbase. Result contains HTTP Response object.
+     * Fetches cryptos from coinbase.
      * 
-     * @return self
+     * @param bool $storeCryptos
+     * @return void
     */
-    public function fetchCryptos(): self
+    public function fetchCryptos(bool $storeCryptos = true): void
     {
-        $this->data = $this->withQuery(['product_type' => CoinbaseProductTypesEnum::SPOT->value])
-            ->api('GET', CoinbaseUriEnum::PRODUCTS_URI->value);
+        $this->query = ['product_type' => CoinbaseProductTypesEnum::SPOT->value];
 
-        return $this;
+        $this->api([
+            'method' => 'GET',
+            'uri' => CoinbaseUriEnum::PRODUCTS_URI->value,
+        ]);
+
+        $this->handleResponse();
+
+        if($storeCryptos) {
+            $this->storeCryptos();
+        }
     }
 
     /**
      * Stores previous crypto info if CryptoCurrency model is not empty.
      * 
-     * @return self
+     * @return void
     */
-    public function storeCryptos(): self
+    private function storeCryptos(): void
     {
         $prevCryptos = CryptoCurrency::get(['product_id','price','price_percentage_change_24h']);
         CryptoCurrency::truncate();
 
-        foreach ($this->data->collect('products') as $crypto) {
+        foreach ($this->response->collect('products') as $crypto) {
             $prevCrypto = $prevCryptos->firstWhere('product_id', $crypto['product_id']);
 
             if($prevCrypto) {
-                $dataToCreate = array_merge($crypto, [
+                $cryptoWithPrev = array_merge($crypto, [
                     'prev_price' => $prevCrypto->price,
                     'prev_price_percentage_change_24h' => $prevCrypto->price_percentage_change_24h,
                 ]);
-                CryptoCurrency::create($dataToCreate);
+                CryptoCurrency::create($cryptoWithPrev);
             } else {
                 CryptoCurrency::create($crypto);
             } 
         }
-
-        return $this;
     }
 }
